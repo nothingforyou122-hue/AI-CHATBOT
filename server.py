@@ -13,7 +13,7 @@ from ai_image import generate_image_bytes
 from auth import check_api_key
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-FRONTEND_DIR = os.path.join(ROOT, "..", "frontend")
+FRONTEND_DIR = os.path.join(ROOT, "frontend")
 
 app = FastAPI()
 app.add_middleware(
@@ -62,3 +62,4 @@ async def generate(req: Request):
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
