@@ -1,103 +1,142 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>AI-CHATBOT — AI Studio</title>
-  <style>
-    body{margin:0;font-family:Inter,Arial;background:#0f0f0f;color:#eee;display:flex;height:100vh}
-    .sidebar{width:260px;background:#111;padding:20px;border-right:1px solid #222;box-sizing:border-box}
-    .main{flex:1;display:flex;flex-direction:column}
-    .chat{flex:1;padding:20px;overflow:auto}
-    .bubble{max-width:75%;padding:12px 14px;border-radius:12px;margin:12px 0;line-height:1.4}
-    .user{background:#2b65ff;color:#fff;margin-left:auto}
-    .assistant{background:#1a1a1a;border:1px solid #2a2a2a}
-    .img{max-width:60%;border-radius:10px;margin-top:10px;box-shadow:0 10px 30px rgba(0,0,0,0.6)}
-    .bottom{padding:12px;border-top:1px solid #222;display:flex;gap:8px;background:#0b0b0b}
-    input[type=text]{flex:1;padding:12px;border-radius:8px;border:none;background:#222;color:#fff;font-size:16px}
-    button{padding:12px 18px;border-radius:8px;border:none;background:#58a6ff;color:#000;font-weight:700;cursor:pointer}
-    .small{font-size:13px;color:#bbb;margin-top:8px}
-  </style>
+
+  <link rel="stylesheet" href="/static/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="sidebar">
-    <h2 style="color:#58a6ff">AI-CHATBOT</h2>
-    <p class="small">Chat, code, and create images — powered by your backend.</p>
-    <hr style="border-color:#222">
-    <div class="small">Tips:</div>
-    <ul style="font-size:13px;color:#bbb">
-      <li>Type normally to chat</li>
-      <li>Type `/img <prompt>` to generate an image</li>
-      <li>Your session is stored in browser</li>
-    </ul>
-  </div>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">A</div>
+        <div class="meta">
+          <div class="title" id="brandTitle">AI-CHATBOT</div>
+          <div class="subtitle">Classy AI Studio</div>
+        </div>
+      </div>
 
-  <div class="main">
-    <div id="chat" class="chat"></div>
-    <div class="bottom">
-      <input id="prompt" type="text" placeholder="Ask AlbinGPT or type /img a futuristic car..." />
-      <button id="sendBtn">Send</button>
-      <button id="imgBtn">Image</button>
-    </div>
+      <nav class="tips">
+        <div class="section-title">Tips</div>
+        <ul>
+          <li>Ask anything — chat, code, or brainstorm.</li>
+          <li>Click the image button to generate images.</li>
+        </ul>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header class="header">
+        <div class="breadcrumbs">Home • Chat</div>
+        <button id="clearBtn" class="ghost">New session</button>
+      </header>
+
+      <section id="chat" class="chat" aria-live="polite"></section>
+
+      <form id="composer" class="composer" onsubmit="return false;">
+        <input id="prompt" type="text" autocomplete="off" placeholder="Ask AI-CHATBOT anything..." />
+        <button id="sendBtn" type="button" class="primary">Send</button>
+        <button id="imgBtn" type="button" class="secondary">Image</button>
+      </form>
+    </main>
   </div>
 
 <script>
 const chatEl = document.getElementById('chat');
 const promptEl = document.getElementById('prompt');
+
 const sessionId = localStorage.getItem('sessionId') || Math.random().toString(36).slice(2);
 localStorage.setItem('sessionId', sessionId);
 
-function addBubble(text, cls='assistant', isHtml=false){
-  const d = document.createElement('div');
-  d.className = 'bubble ' + (cls==='user' ? 'user' : 'assistant');
-  if(isHtml) d.innerHTML = text; else d.textContent = text;
-  chatEl.appendChild(d);
+function addBubble(text, cls='assistant', isHtml=false, meta='') {
+  const row = document.createElement('div');
+  row.className = 'bubble-row ' + (cls === 'user' ? 'row-right' : 'row-left');
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble ' + (cls === 'user' ? 'user' : 'assistant');
+  if (isHtml) bubble.innerHTML = text;
+  else bubble.textContent = text;
+
+  row.appendChild(bubble);
+  chatEl.appendChild(row);
   chatEl.scrollTop = chatEl.scrollHeight;
 }
 
-async function sendPrompt(){
-  const val = promptEl.value.trim(); if(!val) return;
-  addBubble(val, 'user'); promptEl.value='';
-  // if user typed /img <prompt> shortcut
-  if(val.startsWith('/img ')){
-    const p = val.substring(5);
-    addBubble('⏳ generating image...');
-    const res = await fetch('/api/generate', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:p})});
-    const j = await res.json();
-    const last = [...document.querySelectorAll('.assistant')].pop(); if(last && last.innerText.includes('generating')) last.remove();
-    if(j.error) { addBubble('Error: '+j.error); return; }
-    addBubble('✅ Image ready', 'assistant');
-    const img = document.createElement('img'); img.className='img'; img.src = 'data:image/png;base64,' + j.image;
-    chatEl.appendChild(img);
-    return;
-  }
+function addStatus(text) {
+  const s = document.createElement('div');
+  s.className = 'status';
+  s.textContent = text;
+  chatEl.appendChild(s);
+  chatEl.scrollTop = chatEl.scrollHeight;
+  return s;
+}
 
-  addBubble('⏳ thinking...');
-  try{
-    const res = await fetch('/api/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:val, session: sessionId})});
+async function sendChat() {
+  const val = promptEl.value.trim();
+  if (!val) return;
+
+  addBubble(val, 'user');
+  promptEl.value = "";
+
+  const thinking = addStatus("Thinking...");
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ prompt: val, session: sessionId })
+    });
+
     const j = await res.json();
-    const last = [...document.querySelectorAll('.assistant')].pop(); if(last && last.innerText.includes('thinking')) last.remove();
-    addBubble(j.reply, 'assistant');
-  }catch(e){
-    addBubble('Error: '+e.message, 'assistant');
+    thinking.remove();
+
+    addBubble(j.reply || "No reply", "assistant");
+  } catch (e) {
+    thinking.remove();
+    addBubble("Error: " + e.message, "assistant");
   }
 }
 
-document.getElementById('sendBtn').onclick = sendPrompt;
-document.getElementById('imgBtn').onclick = async () => {
-  const val = promptEl.value.trim(); if(!val) return;
-  addBubble(val, 'user'); promptEl.value='';
-  addBubble('⏳ generating image...');
-  const res = await fetch('/api/generate', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:val})});
-  const j = await res.json();
-  const last = [...document.querySelectorAll('.assistant')].pop(); if(last && last.innerText.includes('generating')) last.remove();
-  if(j.error) { addBubble('Error: '+j.error); return; }
-  addBubble('✅ Image ready', 'assistant');
-  const img = document.createElement('img'); img.className='img'; img.src = 'data:image/png;base64,' + j.image;
-  chatEl.appendChild(img);
+async function sendImage() {
+  const val = promptEl.value.trim();
+  if (!val) return;
+
+  addBubble(val, 'user');
+  promptEl.value = "";
+
+  const status = addStatus("Generating image...");
+
+  try {
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ prompt: val })
+    });
+
+    const j = await res.json();
+    status.remove();
+
+    const imgHTML = `<img class="generated" src="data:image/png;base64,${j.image}" alt="">`;
+    addBubble(imgHTML, "assistant", true);
+
+  } catch (e) {
+    status.remove();
+    addBubble("Error: " + e.message, "assistant");
+  }
+}
+
+document.getElementById("sendBtn").onclick = sendChat;
+document.getElementById("imgBtn").onclick = sendImage;
+
+document.getElementById("clearBtn").onclick = () => {
+  localStorage.removeItem("sessionId");
+  location.reload();
 };
+
+addBubble("Hello! Ask AI-CHATBOT anything you want.", "assistant");
 </script>
 </body>
 </html>
-
-
