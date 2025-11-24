@@ -1,0 +1,8 @@
+flask
+groq
+requests
+python-dotenv
+Pillow
+gunicorn
+fastapi
+uvicorn
