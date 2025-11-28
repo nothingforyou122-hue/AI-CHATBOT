@@ -1,68 +1,77 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8">
 <title>AI-CHATBOT</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h1>AI-CHATBOT</h1>
+<div class="layout">
 
-<div id="chat"></div>
+  <aside class="sidebar">
+    <div class="logo">AI-CHATBOT</div>
+    <div class="status">System Online</div>
+  </aside>
 
-<input id="msg" placeholder="Ask AI-CHATBOT..." autofocus>
-<button onclick="send()">Send</button>
+  <main class="panel">
+    <div id="chat" class="chat-box"></div>
 
-<br><br>
+    <div class="input-area">
+      <input id="msg" placeholder="Ask AI-CHATBOT..." autofocus>
+      <button onclick="send()">Send</button>
+    </div>
 
-<input type="file" id="file">
-<button onclick="upload()">Upload</button>
+    <div class="file-area">
+      <input type="file" id="file">
+      <button onclick="upload()">Upload</button>
+    </div>
+  </main>
+
+</div>
 
 <script>
 const chat = document.getElementById("chat");
 const input = document.getElementById("msg");
 
-function add(sender, msg){
-    const div = document.createElement("div");
-    div.className = sender;
-    div.innerText = msg;
-    chat.appendChild(div);
-    chat.scrollTop = chat.scrollHeight;
+function add(type, text){
+  const div = document.createElement("div");
+  div.className = type;
+  div.innerText = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
 }
 
 async function send(){
-    if(!input.value) return;
+  if(!input.value.trim()) return;
+  add("user", input.value);
+  const msg = input.value;
+  input.value = "";
 
-    add("user", input.value);
-    const text = input.value;
-    input.value = "";
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({prompt: msg})
+  });
 
-    const res = await fetch("/api/chat",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({prompt:text})
-    });
-
-    const data = await res.json();
-    add("bot", data.reply);
+  const data = await res.json();
+  add("bot", data.reply || "No response");
 }
 
 async function upload(){
-    const file = document.getElementById("file").files[0];
-    if(!file) return alert("Select a file");
+  const file = document.getElementById("file").files[0];
+  if(!file) return alert("Choose file");
+  
+  const form = new FormData();
+  form.append("file", file);
 
-    const form = new FormData();
-    form.append("file", file);
-
-    const res = await fetch("/api/upload",{method:"POST", body:form});
-    const data = await res.json();
-
-    add("bot", data.reply);
+  const res = await fetch("/api/upload", {method:"POST", body:form});
+  const data = await res.json();
+  add("bot", data.reply);
 }
 
-// ENTER SEND
-input.addEventListener("keydown", e=>{
-    if(e.key==="Enter") send();
+input.addEventListener("keydown", e => {
+  if(e.key === "Enter") send();
 });
 </script>
 
