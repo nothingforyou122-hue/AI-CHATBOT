@@ -2,60 +2,58 @@
 <html>
 <head>
   <title>AI-CHATBOT</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
-<h2>AI-CHATBOT</h2>
+<div class="app">
+  <h2>AI-CHATBOT</h2>
 
-<div id="chatbox"></div>
+  <div id="chatbox"></div>
 
-<input id="msg" placeholder="Ask AI-CHATBOT..." />
-<button onclick="send()">Send</button>
+  <input id="msg" placeholder="Ask AI-CHATBOT..." onkeydown="if(event.key==='Enter')send()">
+  <button onclick="send()">Send</button>
 
-<br><br>
-
-<input type="file" id="file">
-<button onclick="upload()">Upload</button>
+  <input type="file" id="file">
+  <button onclick="upload()">Upload</button>
+</div>
 
 <script>
-
-function add(text){
-  let d = document.createElement("div");
-  d.innerText = text;
-  document.getElementById("chatbox").appendChild(d);
+function add(text,cls){
+  let d=document.createElement("div");
+  d.className=cls;
+  d.innerText=text;
+  chatbox.appendChild(d);
+  chatbox.scrollTop=chatbox.scrollHeight;
 }
 
 async function send(){
-  let text = msg.value;
-  add("You: " + text);
-  msg.value = "";
+  let t=msg.value.trim(); 
+  if(!t) return;
+  add(t,"user");
+  msg.value="";
 
-  let res = await fetch("/api/chat", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({prompt:text})
+  let r=await fetch("/api/chat",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({prompt:t})
   });
 
-  let data = await res.json();
-  add("AI: " + data.reply);
+  let d=await r.json();
+  add(d.reply,"bot");
 }
 
 async function upload(){
-  let file = document.getElementById("file").files[0];
-  if(!file) return alert("Choose a file");
+  let f=file.files[0];
+  if(!f) return alert("Choose a file");
 
-  let form = new FormData();
-  form.append("file", file);
+  let form=new FormData();
+  form.append("file",f);
 
-  let res = await fetch("/api/upload", {
-    method: "POST",
-    body: form
-  });
-
-  let data = await res.json();
-  add("System: " + data.message);
+  let r=await fetch("/api/upload",{method:"POST",body:form});
+  let d=await r.json();
+  add(d.message,"bot");
 }
-
 </script>
 
 </body>
