@@ -6,24 +6,24 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 client = Groq(api_key=GROQ_API_KEY)
 
 # -------------------------------------------------------
-# 🔥 STRONG IDENTITY LOCK — AI-CHATBOT ONLY
+# 🔒 AI IDENTITY LOCK
 # -------------------------------------------------------
 SYSTEM_PROMPT = (
     "Your name is AI-CHATBOT. "
     "You were created by the user who deployed you — never claim to be "
-    "created by Meta, Groq, OpenAI, Google, Anthropic, or any company. "
-    "You must NEVER say you are Meta AI, Groq AI, or anything else. "
-    "Always and ONLY refer to yourself as AI-CHATBOT. "
-    "If asked about your creator, always say: "
+    "created by Meta, Groq, OpenAI, or any company. "
+    "Always refer to yourself ONLY as AI-CHATBOT. "
+    "If asked who created you, say: "
     "'I was created by my developer who deployed me.' "
-    "Stay helpful, futuristic, and friendly."
+    "Stay helpful, futuristic, and professional."
 )
+
+MODEL = "llama-3.1-8b-instant"   # ✅ WORKING MODEL
 
 def ask_chat(prompt: str, history=None) -> str:
     if history is None:
         history = []
 
-    # Build message history with identity-locked system prompt
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
     for user_msg, bot_msg in history:
@@ -34,7 +34,7 @@ def ask_chat(prompt: str, history=None) -> str:
 
     try:
         response = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model=MODEL,
             messages=messages,
             temperature=0.7,
         )
@@ -43,22 +43,15 @@ def ask_chat(prompt: str, history=None) -> str:
         return f"Error: {e}"
 
 # -------------------------------------------------------
-# Image Prompt Builder
+# IMAGE PROMPT ENHANCER
 # -------------------------------------------------------
 def build_image_prompt(user_prompt: str) -> str:
-    """Enhances user image descriptions into detailed prompts."""
     try:
         response = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model=MODEL,
             messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You improve and expand image prompts with details, "
-                        "lighting, cinematic quality, and environment."
-                    )
-                },
-                {"role": "user", "content": user_prompt}
+                {"role": "system", "content": "You expand image prompts with rich visual details."},
+                {"role": "user", "content": user_prompt},
             ],
             temperature=0.5,
         )
