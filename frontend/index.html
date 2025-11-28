@@ -2,85 +2,83 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>JARVIS AI</title>
+<title>AI-CHATBOT</title>
 <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<div class="jarvis">
+<div class="wrapper">
 
-  <div class="left">
-    <div class="core">J</div>
-    <h2>JARVIS</h2>
-    <p>System Status: ONLINE</p>
+  <div class="sidebar">
+    <div class="logo">AI</div>
+    <h1>AI-CHATBOT</h1>
+    <span>Online</span>
   </div>
 
-  <div class="center">
-    <div class="header">JARVIS INTERFACE ACTIVE</div>
+  <div class="chat-area">
 
-    <div id="chatBox" class="chat"></div>
+    <div class="header">Welcome to AI-CHATBOT</div>
+
+    <div id="chatBox"></div>
 
     <div class="controls">
-      <input id="input" placeholder="Command JARVIS..." />
-      <button onclick="send()">SEND</button>
-      <button onclick="image()">IMAGE</button>
+      <input id="userInput" placeholder="Type your message..." autocomplete="off" />
+      <button onclick="sendMessage()">Send</button>
+      <button class="stop" onclick="stopAI()">Stop</button>
     </div>
-  </div>
 
-  <div class="right">
-    <div class="scan"></div>
+    <div class="upload">
+      <input type="file" id="fileInput">
+      <button onclick="uploadFile()">Upload</button>
+    </div>
+
   </div>
 
 </div>
 
 <script>
-const chat = document.getElementById("chatBox");
-const input = document.getElementById("input");
+let controller;
 
-function bubble(cls, txt){
-  let div = document.createElement("div");
-  div.className = `bubble ${cls}`;
-  div.innerText = txt;
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
+function addMessage(role, text){
+  const box = document.getElementById("chatBox");
+  const msg = document.createElement("div");
+  msg.className = role;
+  msg.innerText = text;
+  box.appendChild(msg);
+  box.scrollTop = box.scrollHeight;
 }
 
-async function send(){
-  if(!input.value.trim()) return;
-  bubble("human", input.value);
-  let q = input.value;
-  input.value = "";
+async function sendMessage(){
+  let text = userInput.value.trim();
+  if(!text) return;
 
-  const r = await fetch("/api/chat", {
+  addMessage("user", text);
+  userInput.value = "";
+
+  controller = new AbortController();
+
+  const res = await fetch("/chat", {
     method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({prompt:q})
+    headers:{ "Content-Type":"application/json"},
+    body:JSON.stringify({message:text}),
+    signal:controller.signal
   });
 
-  const d = await r.json();
-  bubble("ai", d.reply);
+  const data = await res.json();
+  addMessage("ai", data.reply);
 }
 
-async function image(){
-  if(!input.value.trim()) return;
-  bubble("human", "[IMAGE] " + input.value);
-
-  const r = await fetch("/api/generate", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({prompt: input.value})
-  });
-
-  const d = await r.json();
-  let img = document.createElement("img");
-  img.src = "data:image/png;base64," + d.image;
-  img.className = "img";
-  chat.appendChild(img);
-  input.value="";
+function stopAI(){
+  if(controller) controller.abort();
 }
 
-input.addEventListener("keydown", e=>{
-  if(e.key==="Enter") send();
+function uploadFile(){
+  alert("File scanning not activated yet.");
+}
+
+userInput.addEventListener("keydown",(e)=>{
+  if(e.key==="Enter") sendMessage();
 });
 </script>
 
