@@ -1,1 +1,1 @@
-web: gunicorn server:app --bind 0.0.0.0:$PORT --workers 1
+web: gunicorn server:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
