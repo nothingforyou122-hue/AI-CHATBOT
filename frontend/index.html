@@ -1,42 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
 <title>AI-CHATBOT</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css"/>
 </head>
 <body>
 
-<div class="layout">
+<div class="app">
 
-  <aside class="sidebar">
-    <div class="logo">AI-CHATBOT</div>
-    <div class="status">System Online</div>
-  </aside>
+  <!-- LEFT PANEL -->
+  <div class="sidebar">
+    <div class="logo">AI</div>
+    <h2>AI-CHATBOT</h2>
+    <span>System Online</span>
+  </div>
 
-  <main class="panel">
-    <div id="chat" class="chat-box"></div>
+  <!-- CHAT PANEL -->
+  <div class="chat-area">
+
+    <div class="status">Welcome. AI-CHATBOT is online.</div>
+    <div id="chatBox"></div>
 
     <div class="input-area">
-      <input id="msg" placeholder="Ask AI-CHATBOT..." autofocus>
+      <input id="msg" placeholder="Ask AI-CHATBOT..." />
       <button onclick="send()">Send</button>
+      <button onclick="generate()">Image</button>
     </div>
 
-    <div class="file-area">
-      <input type="file" id="file">
-      <button onclick="upload()">Upload</button>
-    </div>
-  </main>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel"></div>
 
 </div>
 
 <script>
-const chat = document.getElementById("chat");
+const chat = document.getElementById("chatBox");
 const input = document.getElementById("msg");
 
-function add(type, text){
-  const div = document.createElement("div");
-  div.className = type;
+function bubble(type, text){
+  let div = document.createElement("div");
+  div.className = "bubble " + type;
   div.innerText = text;
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
@@ -44,34 +49,42 @@ function add(type, text){
 
 async function send(){
   if(!input.value.trim()) return;
-  add("user", input.value);
-  const msg = input.value;
+
+  bubble("user", input.value);
+  let q = input.value;
   input.value = "";
 
-  const res = await fetch("/api/chat", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({prompt: msg})
+  let r = await fetch("/api/chat", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({prompt:q})
   });
 
-  const data = await res.json();
-  add("bot", data.reply || "No response");
+  const data = await r.json();
+  bubble("bot", data.reply);
 }
 
-async function upload(){
-  const file = document.getElementById("file").files[0];
-  if(!file) return alert("Choose file");
-  
-  const form = new FormData();
-  form.append("file", file);
+async function generate(){
+  if(!input.value.trim()) return;
+  bubble("user", "/img " + input.value);
 
-  const res = await fetch("/api/upload", {method:"POST", body:form});
-  const data = await res.json();
-  add("bot", data.reply);
+  let r = await fetch("/api/generate", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({prompt: input.value})
+  });
+
+  let d = await r.json();
+  let img = document.createElement("img");
+  img.src = "data:image/png;base64," + d.image;
+  img.className = "image";
+
+  chat.appendChild(img);
+  input.value="";
 }
 
-input.addEventListener("keydown", e => {
-  if(e.key === "Enter") send();
+input.addEventListener("keydown", e=>{
+  if(e.key==="Enter") send();
 });
 </script>
 
