@@ -2,121 +2,76 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AI-CHATBOT</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
 <div class="app">
-  <header>AI-CHATBOT</header>
+  <div class="header">AI-CHATBOT</div>
 
-  <div id="chat" class="chat"></div>
+  <div class="chat" id="chat"></div>
 
-  <div class="input-bar">
-    <input id="input" placeholder="Ask AI-CHATBOT…" autocomplete="off">
+  <div class="input-box">
+    <input type="text" id="input" placeholder="Ask AI-CHATBOT..." autocomplete="off">
     <button onclick="sendChat()">Send</button>
-    <button id="stopBtn" onclick="stopResponse()">Stop</button>
+    <button onclick="stopChat()" class="stop">Stop</button>
   </div>
 </div>
 
 <script>
-let session = localStorage.getItem("session") || crypto.randomUUID();
-localStorage.setItem("session", session);
-
 let controller = null;
 
-const chatBox = document.getElementById("chat");
-const input = document.getElementById("input");
-
-function addBubble(text, cls) {
-  const div = document.createElement("div");
-  div.className = "bubble " + cls;
-  div.innerHTML = formatText(text);
-  chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
-  return div;
-}
-
-function formatText(text) {
-  return text
-    .replace(/\n\n/g,"<br><br>")
-    .replace(/\n/g,"<br>")
-    .replace(/^\d+\.\s(.+)/gm,"• $1<br>")
-    .replace(/^\-\s(.+)/gm,"• $1<br>");
-}
-
-function showThinking() {
-  return addBubble("AI-CHATBOT is thinking…", "assistant thinking");
-}
-
-function stopResponse() {
-  if (controller) {
-    controller.abort();
-    controller = null;
-    addBubble("⏹ Response stopped", "assistant");
-  }
-}
-
-async function sendChat() {
-  const text = input.value.trim();
-  if (!text) return;
-
-  addBubble(text, "user");
-  input.value = "";
-
-  const thinking = showThinking();
-  controller = new AbortController();
-
-  try {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      signal: controller.signal,
-      body: JSON.stringify({ prompt: text, session })
-    });
-
-    const data = await res.json();
-    thinking.remove();
-
-    if (data.reply) {
-      typeEffect(addBubble("", "assistant"), data.reply);
-    } else {
-      addBubble("Error connecting to AI-CHATBOT", "assistant");
-    }
-
-  } catch (e) {
-    thinking.remove();
-    if (e.name === "AbortError") {
-      addBubble("⏹ Response stopped", "assistant");
-    } else {
-      addBubble("Network error", "assistant");
-    }
-  } finally {
-    controller = null;
-  }
-}
-
-function typeEffect(el, text) {
-  let i = 0;
-  const speed = 12;
-  const formatted = formatText(text);
-
-  const interval = setInterval(() => {
-    el.innerHTML = formatted.slice(0, i);
-    chatBox.scrollTop = chatBox.scrollHeight;
-    i++;
-    if (i > formatted.length) clearInterval(interval);
-  }, speed);
-}
-
-// ENTER KEY SEND
-input.addEventListener("keydown", e => {
-  if (e.key === "Enter") {
-    e.preventDefault();
+document.getElementById("input").addEventListener("keypress", function(e){
+  if(e.key === "Enter"){
     sendChat();
   }
 });
+
+function addMsg(text, cls){
+  const div = document.createElement("div");
+  div.className = "msg " + cls;
+  div.innerText = text;
+  document.getElementById("chat").appendChild(div);
+  document.getElementById("chat").scrollTop = chat.scrollHeight;
+}
+
+async function sendChat(){
+  const input = document.getElementById("input");
+  const message = input.value.trim();
+  if(!message) return;
+
+  input.value = "";
+  addMsg(message, "user");
+
+  controller = new AbortController();
+
+  try{
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      signal: controller.signal,
+      body: JSON.stringify({ prompt: message })
+    });
+
+    const data = await res.json();
+    addMsg(data.reply, "bot");
+  }
+  catch(err){
+    if(err.name === "AbortError"){
+      addMsg("⏹ Stopped", "stop");
+    } else {
+      addMsg("Error connecting to server.", "stop");
+    }
+  }
+}
+
+function stopChat(){
+  if(controller){
+    controller.abort();
+    controller = null;
+  }
+}
 </script>
 
 </body>
