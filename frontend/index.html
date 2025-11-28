@@ -1,59 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>AI-CHATBOT</title>
-  <link rel="stylesheet" href="/style.css">
+<title>AI-CHATBOT</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="app">
-  <h2>AI-CHATBOT</h2>
+<h1>AI-CHATBOT</h1>
 
-  <div id="chatbox"></div>
+<div id="chat"></div>
 
-  <input id="msg" placeholder="Ask AI-CHATBOT..." onkeydown="if(event.key==='Enter')send()">
-  <button onclick="send()">Send</button>
+<input id="msg" placeholder="Ask AI-CHATBOT..." autofocus>
+<button onclick="send()">Send</button>
 
-  <input type="file" id="file">
-  <button onclick="upload()">Upload</button>
-</div>
+<br><br>
+
+<input type="file" id="file">
+<button onclick="upload()">Upload</button>
 
 <script>
-function add(text,cls){
-  let d=document.createElement("div");
-  d.className=cls;
-  d.innerText=text;
-  chatbox.appendChild(d);
-  chatbox.scrollTop=chatbox.scrollHeight;
+const chat = document.getElementById("chat");
+const input = document.getElementById("msg");
+
+function add(sender, msg){
+    const div = document.createElement("div");
+    div.className = sender;
+    div.innerText = msg;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
 }
 
 async function send(){
-  let t=msg.value.trim(); 
-  if(!t) return;
-  add(t,"user");
-  msg.value="";
+    if(!input.value) return;
 
-  let r=await fetch("/api/chat",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({prompt:t})
-  });
+    add("user", input.value);
+    const text = input.value;
+    input.value = "";
 
-  let d=await r.json();
-  add(d.reply,"bot");
+    const res = await fetch("/api/chat",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({prompt:text})
+    });
+
+    const data = await res.json();
+    add("bot", data.reply);
 }
 
 async function upload(){
-  let f=file.files[0];
-  if(!f) return alert("Choose a file");
+    const file = document.getElementById("file").files[0];
+    if(!file) return alert("Select a file");
 
-  let form=new FormData();
-  form.append("file",f);
+    const form = new FormData();
+    form.append("file", file);
 
-  let r=await fetch("/api/upload",{method:"POST",body:form});
-  let d=await r.json();
-  add(d.message,"bot");
+    const res = await fetch("/api/upload",{method:"POST", body:form});
+    const data = await res.json();
+
+    add("bot", data.reply);
 }
+
+// ENTER SEND
+input.addEventListener("keydown", e=>{
+    if(e.key==="Enter") send();
+});
 </script>
 
 </body>
