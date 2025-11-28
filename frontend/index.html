@@ -1,239 +1,96 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AI-CHATBOT</title>
-  <style>
-  :root{
-    --bg:#02050a;
-    --neon1:#7bf1ff;
-    --neon2:#c86bff;
-    --muted:rgba(180,200,220,.65);
-  }
-  html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;color:#dff6ff;background:
-    radial-gradient(circle at 20% 10%,rgba(124,196,255,.05),transparent), #02050a;}
-  *{box-sizing:border-box}
-  .shell{display:flex;gap:16px;height:90vh;max-width:1200px;margin:3vh auto;padding:16px}
-  .hud,.visual{width:260px;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.05);border-radius:14px;padding:16px}
-  .panel{flex:1;background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);border-radius:14px;border:1px solid rgba(255,255,255,.05);display:flex;flex-direction:column}
-  .brand{display:flex;gap:12px;align-items:center}
-  .logo{width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,var(--neon1),var(--neon2));color:#001;font-weight:800;display:grid;place-items:center}
-  .title{font-weight:800;letter-spacing:1px}
-  .meta{font-size:12px;color:var(--muted)}
-  .chat{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:12px}
-  .row{display:flex}
-  .row.user{justify-content:flex-end}
-  .bubble{max-width:70%;padding:12px 14px;border-radius:14px;line-height:1.45}
-  .user{
-    background: rgba(120,180,255,0.12);
-    border: 1px solid rgba(160,210,255,0.25);
-    backdrop-filter: blur(8px);
-    color: #e9f5ff;
-    box-shadow: inset 0 0 12px rgba(120,180,255,.08);
-    border-radius:14px;
-  }
-  .ai{
-    background: rgba(15,20,30,0.65);
-    border: 1px solid rgba(255,255,255,0.06);
-    box-shadow: 0 0 12px rgba(0,255,255,0.04);
-    backdrop-filter: blur(10px);
-    border-radius:14px;
-  }
-  .sys{color:var(--muted);font-size:13px}
-  .composer{display:flex;gap:10px;border-top:1px solid rgba(255,255,255,.05);padding:12px}
-  .composer input{flex:1;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:#fff;outline:none}
-  .btn{padding:10px 12px;border-radius:10px;border:none;cursor:pointer}
-  .send{background:linear-gradient(135deg,var(--neon1),var(--neon2));color:#001;font-weight:700}
-  .img{background:transparent;border:1px solid rgba(255,255,255,.1);color:#fff}
-  .cursor{display:inline-block;width:8px;height:1em;background:var(--neon1);margin-left:6px;animation:blink 1s steps(2,start) infinite}
-  @keyframes blink{50%{opacity:0}}
-  .thinking{animation:pulse 1.2s infinite; color:var(--muted)}
-  @keyframes pulse{50%{opacity:.4}}
-  /* small screen */
-  @media (max-width:1000px){.shell{flex-direction:column;padding:12px}.hud,.visual{width:100%}}
-  </style>
+<meta charset="UTF-8">
+<title>AI-CHATBOT</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="shell">
-  <div class="hud">
-    <div class="brand">
-      <div class="logo">AI</div>
-      <div>
-        <div class="title">AI-CHATBOT</div>
-        <div class="meta">System Online</div>
-      </div>
-    </div>
-    <div style="margin-top:14px;color:var(--muted);font-size:13px">Tip: Press <strong>Enter</strong> to send. Use <strong>Image</strong> to create images.</div>
+
+<div class="app">
+  <div class="header">AI-CHATBOT</div>
+
+  <div id="chat"></div>
+
+  <div class="input-bar">
+    <input id="msg" placeholder="Ask AI-CHATBOT..." autocomplete="off">
+    <button onclick="sendChat()">Send</button>
+    <input type="file" id="fileInput" hidden>
+    <button onclick="pickFile()">Upload</button>
   </div>
-
-  <div class="panel">
-    <div id="chat" class="chat" role="log" aria-live="polite"></div>
-
-    <div class="composer">
-      <input id="prompt" placeholder="Ask AI-CHATBOT..." autocomplete="off" />
-      <button class="btn send" id="send">Send</button>
-      <button class="btn img" id="image">Image</button>
-    </div>
-  </div>
-
-  <div class="visual"></div>
 </div>
 
 <script>
-/* --- Safe, self-contained frontend logic --- */
-const chat = document.getElementById('chat');
-const promptInput = document.getElementById('prompt');
-const btnSend = document.getElementById('send');
-const btnImage = document.getElementById('image');
+const chat = document.getElementById("chat");
+const input = document.getElementById("msg");
 
-const sessionId = localStorage.getItem('sessionId') || Math.random().toString(36).slice(2);
-localStorage.setItem('sessionId', sessionId);
-
-/* helpers */
-function makeRow(isUser = false){
-  const r = document.createElement('div');
-  r.className = 'row' + (isUser ? ' user' : '');
-  return r;
-}
-function makeBubble(kind){
-  const b = document.createElement('div');
-  b.className = 'bubble ' + kind;
-  return b;
-}
-function scrollToBottom(){ chat.scrollTop = chat.scrollHeight; }
-
-/* typing effect (letter-by-letter) */
-function typeTextInto(bubbleEl, text, speed = 18){
-  bubbleEl.textContent = '';
-  const cursor = document.createElement('span');
-  cursor.className = 'cursor';
-  bubbleEl.appendChild(cursor);
-
-  let i = 0;
-  const interval = setInterval(()=>{
-    if(i >= text.length){ cursor.remove(); clearInterval(interval); scrollToBottom(); return; }
-    // insert char before cursor
-    cursor.insertAdjacentText('beforebegin', text.charAt(i));
-    i++;
-    scrollToBottom();
-  }, speed);
-}
-
-/* add user bubble */
-function addUserBubble(text){
-  const r = makeRow(true);
-  const b = makeBubble('user');
-  b.textContent = text;
-  r.appendChild(b);
-  chat.appendChild(r);
-  scrollToBottom();
-}
-
-/* add a temporary system status (thinking) */
-function addSystemStatus(text){
-  const s = document.createElement('div');
-  s.className = 'sys thinking';
-  s.textContent = text;
-  chat.appendChild(s);
-  scrollToBottom();
-  return s;
-}
-
-/* add AI bubble container (with cursor) */
-function createAIBubble(){
-  const r = makeRow(false);
-  const b = makeBubble('ai');
-  r.appendChild(b);
-  chat.appendChild(r);
-  scrollToBottom();
-  return b;
-}
-
-/* SEND CHAT */
-async function sendChat(){
-  const prompt = promptInput.value.trim();
-  if(!prompt) return;
-  addUserBubble(prompt);
-  promptInput.value = '';
-  const status = addSystemStatus('Thinking...');
-  try{
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ prompt, session: sessionId })
-    });
-    // if server returned non-json (error page), throw
-    if(!res.ok) {
-      const text = await res.text();
-      throw new Error(text.slice(0,200));
-    }
-    const j = await res.json();
-    status.remove();
-    const aiBubble = createAIBubble();
-    // use typing effect
-    typeTextInto(aiBubble, j.reply || 'No reply from AI-CHATBOT', 18);
-  } catch (err) {
-    status.remove();
-    const aiBubble = createAIBubble();
-    aiBubble.textContent = 'Error: ' + (err.message || String(err));
-  }
-}
-
-/* SEND IMAGE */
-async function sendImage(){
-  const prompt = promptInput.value.trim();
-  if(!prompt) return;
-  addUserBubble(prompt);
-  promptInput.value = '';
-  const status = addSystemStatus('Generating image...');
-  try{
-    const res = await fetch('/api/generate', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ prompt })
-    });
-    if(!res.ok){
-      const text = await res.text();
-      throw new Error(text.slice(0,200));
-    }
-    const j = await res.json();
-    status.remove();
-    const r = makeRow(false);
-    const b = makeBubble('ai');
-    const img = document.createElement('img');
-    img.src = 'data:image/png;base64,' + j.image;
-    img.style.maxWidth = '420px';
-    img.style.borderRadius = '12px';
-    b.appendChild(img);
-    r.appendChild(b);
-    chat.appendChild(r);
-    scrollToBottom();
-  } catch (err) {
-    status.remove();
-    const aiBubble = createAIBubble();
-    aiBubble.textContent = 'Error: ' + (err.message || String(err));
-  }
-}
-
-/* KEYBIND: Enter sends */
-promptInput.addEventListener('keydown', function(e){
-  if(e.key === 'Enter' && !e.shiftKey){
-    e.preventDefault();
-    sendChat();
-  }
+// ✅ Enter key send
+input.addEventListener("keypress", e => {
+  if (e.key === "Enter") sendChat();
 });
 
-/* Buttons */
-btnSend.addEventListener('click', sendChat);
-btnImage.addEventListener('click', sendImage);
+// ✅ Typing effect
+function typeText(el, text, i = 0) {
+  if (i < text.length) {
+    el.innerHTML += text[i++];
+    setTimeout(() => typeText(el, text, i), 15);
+  }
+}
 
-/* initial greeting */
-(function init(){
-  const ai = createAIBubble();
-  typeTextInto(ai, 'Welcome — I am AI-CHATBOT. Ask me anything.', 18);
-})();
+function addBubble(text, cls) {
+  const div = document.createElement("div");
+  div.className = "bubble " + cls;
+  chat.appendChild(div);
+  typeText(div, text);
+  chat.scrollTop = chat.scrollHeight;
+}
 
+// ✅ Chat
+async function sendChat() {
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  addBubble(msg, "user");
+  input.value = "";
+
+  const r = await fetch("/api/chat", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({ prompt: msg })
+  });
+
+  const j = await r.json();
+  addBubble(formatText(j.reply), "ai");
+}
+
+// ✅ File Upload
+function pickFile() {
+  document.getElementById("fileInput").click();
+}
+
+document.getElementById("fileInput").onchange = async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  addBubble("Uploaded: " + file.name, "user");
+
+  const fd = new FormData();
+  fd.append("file", file);
+
+  const r = await fetch("/api/upload", {method:"POST", body:fd});
+  const j = await r.json();
+
+  addBubble(j.summary || "Could not analyze file.", "ai");
+};
+
+// ✅ Formatting
+function formatText(text) {
+  return text
+    .replace(/\n\n/g,"\n")
+    .replace(/\n/g,"\n• ")
+    .replace(/^•/,"");
+}
 </script>
+
 </body>
 </html>
