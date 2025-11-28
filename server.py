@@ -99,8 +99,16 @@ async def upload_file(file: UploadFile = File(...)):
         summary = ask_chat(f"Summarize and extract key points from this file:\n\n{snippet}", history=[])
         return JSONResponse({"summary": summary})
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        return JSONResponse(status_code=500, content={"error": str(e)}) 
+        from fastapi import UploadFile, File
+
+@app.post("/api/upload")
+async def upload(file: UploadFile = File(...)):
+    content = await file.read()
+    return {"message": f"File received: {file.filename} ({len(content)} bytes)"}
+
 
 @app.get("/api/health")
 def health():
     return {"status": "AI-CHATBOT online"}
+
