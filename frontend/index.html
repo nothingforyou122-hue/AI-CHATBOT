@@ -1,77 +1,61 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>AI-CHATBOT</title>
-<link rel="stylesheet" href="/style.css">
+  <title>AI-CHATBOT</title>
 </head>
 <body>
 
-<div class="app">
-  <div class="header">AI-CHATBOT</div>
+<h2>AI-CHATBOT</h2>
 
-  <div class="chat" id="chat"></div>
+<div id="chatbox"></div>
 
-  <div class="input-box">
-    <input type="text" id="input" placeholder="Ask AI-CHATBOT..." autocomplete="off">
-    <button onclick="sendChat()">Send</button>
-    <button onclick="stopChat()" class="stop">Stop</button>
-  </div>
-</div>
+<input id="msg" placeholder="Ask AI-CHATBOT..." />
+<button onclick="send()">Send</button>
+
+<br><br>
+
+<input type="file" id="file">
+<button onclick="upload()">Upload</button>
 
 <script>
-let controller = null;
 
-document.getElementById("input").addEventListener("keypress", function(e){
-  if(e.key === "Enter"){
-    sendChat();
-  }
-});
-
-function addMsg(text, cls){
-  const div = document.createElement("div");
-  div.className = "msg " + cls;
-  div.innerText = text;
-  document.getElementById("chat").appendChild(div);
-  document.getElementById("chat").scrollTop = chat.scrollHeight;
+function add(text){
+  let d = document.createElement("div");
+  d.innerText = text;
+  document.getElementById("chatbox").appendChild(d);
 }
 
-async function sendChat(){
-  const input = document.getElementById("input");
-  const message = input.value.trim();
-  if(!message) return;
+async function send(){
+  let text = msg.value;
+  add("You: " + text);
+  msg.value = "";
 
-  input.value = "";
-  addMsg(message, "user");
+  let res = await fetch("/api/chat", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({prompt:text})
+  });
 
-  controller = new AbortController();
-
-  try{
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      signal: controller.signal,
-      body: JSON.stringify({ prompt: message })
-    });
-
-    const data = await res.json();
-    addMsg(data.reply, "bot");
-  }
-  catch(err){
-    if(err.name === "AbortError"){
-      addMsg("⏹ Stopped", "stop");
-    } else {
-      addMsg("Error connecting to server.", "stop");
-    }
-  }
+  let data = await res.json();
+  add("AI: " + data.reply);
 }
 
-function stopChat(){
-  if(controller){
-    controller.abort();
-    controller = null;
-  }
+async function upload(){
+  let file = document.getElementById("file").files[0];
+  if(!file) return alert("Choose a file");
+
+  let form = new FormData();
+  form.append("file", file);
+
+  let res = await fetch("/api/upload", {
+    method: "POST",
+    body: form
+  });
+
+  let data = await res.json();
+  add("System: " + data.message);
 }
+
 </script>
 
 </body>
