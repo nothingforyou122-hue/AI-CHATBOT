@@ -1,10 +1,8 @@
-flask
-groq
-requests
-python-dotenv
-Pillow
-gunicorn
 fastapi
 uvicorn
+gunicorn
+python-dotenv
+groq
+requests
+pillow
 python-multipart
-
