@@ -18,10 +18,23 @@
   .meta{font-size:12px;color:var(--muted)}
   .chat{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:12px}
   .row{display:flex}
-  .row.user{justify-content:flex-end}
+  .row.user{
+  background: rgba(120,180,255,0.12);
+  border: 1px solid rgba(160,210,255,0.25);
+  backdrop-filter: blur(10px);
+  color: #e9f5ff;
+  box-shadow: inset 0 0 12px rgba(120,180,255,.15);
+  border-radius: 14px;
+}
   .bubble{max-width:70%;padding:12px 14px;border-radius:12px;line-height:1.4}
   .user{background:linear-gradient(180deg,var(--neon1),#3fbfff);color:#002}
-  .ai{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08)}
+  .ai{
+  background: rgba(15,20,30,0.65);
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 0 12px rgba(0,255,255,0.04);
+  backdrop-filter: blur(12px);
+  border-radius: 14px;
+}
   .sys{color:var(--muted);font-size:13px}
   .composer{display:flex;gap:10px;border-top:1px solid rgba(255,255,255,.05);padding:12px}
   .composer input{flex:1;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);color:#fff}
@@ -30,6 +43,8 @@
   .img{background:transparent;border:1px solid rgba(255,255,255,.1);color:#fff}
   .cursor{display:inline-block;width:8px;background:#7bf1ff;margin-left:2px;animation:blink 1s infinite}
   @keyframes blink{50%{opacity:0}}
+
+@keyframes glow{50%{box-shadow:0 0 20px rgba(120,200,255,0.25)}}{50%{opacity:0}}
   .thinking{animation:pulse 1.2s infinite}
   @keyframes pulse{50%{opacity:.4}}
   </style>
@@ -51,18 +66,13 @@
 </div>
 <script>
 const chat=document.getElementById('chat');const p=document.getElementById('prompt');
-function row(cls){const r=document.createElement('div');r.className='row '+cls;return r}
-function bubble(cls){const b=document.createElement('div');b.className='bubble '+cls;return b}
-function addUser(t){const r=row('user');const b=bubble('user');b.textContent=t;r.appendChild(b);chat.appendChild(r)}
-function addAI(){const r=row('');const b=bubble('ai');const c=document.createElement('span');c.className='cursor';b.appendChild(c);r.appendChild(b);chat.appendChild(r);return b}
-function scroll(){chat.scrollTop=chat.scrollHeight}
-function type(el,text){let i=0;const cur=el.querySelector('.cursor');const interval=setInterval(()=>{if(i>=text.length){cur.remove();clearInterval(interval);return;}el.insertBefore(document.createTextNode(text[i++]),cur);scroll();},25)}
-function thinking(){const s=document.createElement('div');s.className='sys thinking';s.textContent='Thinking...';chat.appendChild(s);return s}
-async function sendChat(){const v=p.value.trim();if(!v)return;addUser(v);p.value='';const t=thinking();const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:v})});const j=await res.json();t.remove();const b=addAI();type(b,j.reply||'No reply');}
-async function sendImage(){const v=p.value.trim();if(!v)return;addUser(v);p.value='';const t=thinking();const res=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:v})});const j=await res.json();t.remove();const r=row('');const b=bubble('ai');b.innerHTML=`<img src="data:image/png;base64,${j.image}" style="max-width:360px;border-radius:8px"/>`;r.appendChild(b);chat.appendChild(r);}
 
-document.getElementById('send').onclick=sendChat;document.getElementById('image').onclick=sendImage;
-addAI();type(chat.lastChild.querySelector('.bubble'),"Welcome. AI-CHATBOT is online.");
+p.addEventListener('keydown', function(e){
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    sendChat();
+  }
+});
 </script>
 </body>
 </html>
