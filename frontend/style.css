@@ -1,146 +1,168 @@
-body {
+/* RESET */
+* {
+  box-sizing:border-box;
   margin:0;
-  background:#02050f;
-  font-family: "Segoe UI", sans-serif;
-  color:#dde6ff;
+  padding:0;
 }
 
-.jarvis {
-  display:flex;
+body {
+  background:radial-gradient(ellipse at top, #020513, #00020a);
+  font-family:'Segoe UI',system-ui,sans-serif;
+  color:#e4edff;
   height:100vh;
 }
 
-/* LEFT */
-.left {
-  width:230px;
-  background:#050a1c;
-  box-shadow:0 0 25px cyan inset;
-  text-align:center;
-  padding:15px;
+/********************************************************/
+/* MAIN LAYOUT */
+/********************************************************/
+.container {
+  display:flex;
+  height:100vh;
+  padding:20px;
+  gap:15px;
 }
 
-.core {
-  width:70px;
-  height:70px;
-  background:radial-gradient(circle, cyan 30%, #03142b);
-  margin:10px auto;
-  border-radius:50%;
+/* PANELS */
+.panel {
+  background:linear-gradient(180deg,rgba(7,15,38,.9),rgba(2,5,15,.9));
+  border-radius:20px;
+  box-shadow:
+    0 0 40px rgba(0,200,255,.12),
+    inset 0 0 25px rgba(0,180,255,.06);
+  position:relative;
+  overflow:hidden;
+}
+
+/* LEFT */
+.sidebar {
+  width:240px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:20px;
+}
+
+.logo {
+  width:60px;
+  height:60px;
+  border-radius:14px;
+  background:linear-gradient(135deg,#6fd3ff,#8b7eff);
   display:flex;
   justify-content:center;
   align-items:center;
-  color:black;
-  font-size:26px;
+  font-weight:bold;
+  color:#000;
+  margin-bottom:10px;
 }
 
-.left h2 {
-  margin:5px;
-  letter-spacing:2px;
+.sidebar h2 {
+  font-size:18px;
+  letter-spacing:1px;
 }
 
-.left p {
-  color:#76baff;
+.sidebar p {
+  color:#8fb8ff;
   font-size:12px;
 }
 
-/* CHAT */
-.center {
+/* CENTER */
+.chat-panel {
   flex:1;
   display:flex;
   flex-direction:column;
   padding:20px;
 }
 
-.header {
-  background:#040822;
+.top-bar {
+  background:rgba(0,0,0,.4);
+  border:1px solid rgba(130,200,255,.15);
   padding:10px;
-  border:1px solid cyan;
-  border-radius:10px;
-  margin-bottom:15px;
-  text-align:center;
-}
-
-.chat {
-  flex:1;
-  background:#00030a;
   border-radius:15px;
-  box-shadow:0 0 40px #022d46 inset;
+  text-align:center;
+  margin-bottom:15px;
+}
+
+/* MESSAGES */
+#chatBox {
+  flex:1;
   overflow-y:auto;
-  padding:15px;
 }
 
-/* BUBBLES */
-.bubble {
-  margin:10px 0;
+/* USER */
+.user {
+  background:linear-gradient(135deg,#203d70,#296faa);
+  color:white;
   padding:12px;
-  border-radius:12px;
+  border-radius:15px;
   max-width:70%;
-  animation:pop 0.2s ease;
-}
-
-.human {
-  background:#0a1438;
   margin-left:auto;
-  color:#d6dbff;
+  margin-bottom:10px;
+  box-shadow:0 0 10px rgba(0,140,255,.4);
 }
 
+/* AI */
 .ai {
-  background:#050c1f;
-  color:#ced5ff;
-  box-shadow:0 0 10px #062042;
+  background:linear-gradient(135deg,#080f25,#0b1535);
+  color:#cfdcff;
+  padding:12px;
+  border-radius:15px;
+  max-width:70%;
+  margin-bottom:10px;
+  box-shadow:inset 0 0 18px rgba(0,150,255,.1);
 }
 
+/********************************************************/
 /* INPUT */
-.controls {
+/********************************************************/
+.input-area {
   display:flex;
+  gap:10px;
   margin-top:10px;
-  gap:6px;
 }
+
 input {
   flex:1;
-  background:#07102b;
-  border:none;
-  padding:10px;
+  background:#050a22;
+  border:1px solid rgba(0,160,255,.3);
   color:white;
+  padding:12px;
+  border-radius:15px;
   outline:none;
 }
+
 button {
-  background:#051a38;
-  border:1px solid cyan;
-  color:white;
+  background:linear-gradient(135deg,#4da7ff,#8c74ff);
+  color:black;
+  border:none;
+  padding:10px 14px;
+  border-radius:14px;
+  font-weight:bold;
   cursor:pointer;
+  transition:.2s;
 }
+
 button:hover {
-  background:#08205c;
+  transform:scale(1.04);
+  box-shadow:0 0 18px rgba(120,180,255,.8);
 }
 
 /* RIGHT */
-.right {
-  width:230px;
-  background:#050a1c;
-  box-shadow:0 0 30px cyan inset;
-  position:relative;
+.right-panel {
+  width:260px;
 }
-.scan {
+
+/********************************************************/
+/* GLOW ANIMATION */
+/********************************************************/
+.panel::before {
+  content:"";
   position:absolute;
-  height:100%;
-  width:2px;
-  background:cyan;
-  animation:scan 3s infinite linear;
+  inset:0;
+  background:linear-gradient(120deg,transparent,rgba(0,160,255,.1),transparent);
+  animation:scan 6s linear infinite;
 }
 
-/* IMAGE */
-.img {
-  max-width:250px;
-  border-radius:10px;
-  margin:10px;
-}
-
-/* EFFECTS */
 @keyframes scan {
-  from {left:0;}
-  to {left:100%;}
-}
-@keyframes pop {
-  from {opacity:0; transform:scale(0.95);}
-  to {opacity:1; transform:scale(1);}
+  from {transform:translateX(-100%);}
+  to {transform:translateX(100%);}
 }
