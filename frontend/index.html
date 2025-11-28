@@ -5,79 +5,63 @@
 <title>AI-CHATBOT</title>
 <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<div class="wrapper">
+<div class="container">
+  <div class="chatbox">
 
-  <div class="sidebar">
-    <div class="logo">AI</div>
-    <h1>AI-CHATBOT</h1>
-    <span>Online</span>
-  </div>
+    <div class="header">AI-CHATBOT</div>
 
-  <div class="chat-area">
+    <div id="chat"></div>
 
-    <div class="header">Welcome to AI-CHATBOT</div>
-
-    <div id="chatBox"></div>
-
-    <div class="controls">
-      <input id="userInput" placeholder="Type your message..." autocomplete="off" />
-      <button onclick="sendMessage()">Send</button>
-      <button class="stop" onclick="stopAI()">Stop</button>
-    </div>
-
-    <div class="upload">
-      <input type="file" id="fileInput">
-      <button onclick="uploadFile()">Upload</button>
+    <div class="input-area">
+      <input id="input" placeholder="Type a message..." autocomplete="off">
+      <button id="send">Send</button>
+      <button id="stop">Stop</button>
     </div>
 
   </div>
-
 </div>
 
 <script>
 let controller;
 
-function addMessage(role, text){
-  const box = document.getElementById("chatBox");
-  const msg = document.createElement("div");
-  msg.className = role;
-  msg.innerText = text;
-  box.appendChild(msg);
-  box.scrollTop = box.scrollHeight;
+function addMessage(role, text) {
+  const chat = document.getElementById("chat");
+  const div = document.createElement("div");
+  div.className = "msg " + role;
+  div.textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
 }
 
-async function sendMessage(){
-  let text = userInput.value.trim();
-  if(!text) return;
+async function sendMessage() {
+  const input = document.getElementById("input");
+  if (!input.value.trim()) return;
 
-  addMessage("user", text);
-  userInput.value = "";
+  addMessage("user", input.value);
 
   controller = new AbortController();
 
-  const res = await fetch("/chat", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json"},
-    body:JSON.stringify({message:text}),
-    signal:controller.signal
+  const response = await fetch("/api/chat", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ prompt: input.value }),
+    signal: controller.signal
   });
 
-  const data = await res.json();
-  addMessage("ai", data.reply);
+  const data = await response.json();
+
+  // ✅ FIXED undefined bug
+  addMessage("ai", data.reply || "No response from AI");
+
+  input.value = "";
 }
 
-function stopAI(){
-  if(controller) controller.abort();
-}
+document.getElementById("send").onclick = sendMessage;
+document.getElementById("stop").onclick = () => controller.abort();
 
-function uploadFile(){
-  alert("File scanning not activated yet.");
-}
-
-userInput.addEventListener("keydown",(e)=>{
+document.getElementById("input").addEventListener("keydown", e=>{
   if(e.key==="Enter") sendMessage();
 });
 </script>
