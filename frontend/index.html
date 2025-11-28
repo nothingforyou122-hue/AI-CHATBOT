@@ -1,220 +1,123 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AI-CHATBOT</title>
-  <link rel="stylesheet" href="/static/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI-CHATBOT</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="shell">
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="logo">AI</div>
-        <div>
-          <div class="title">AI-CHATBOT</div>
-          <div class="subtitle">System Online</div>
-        </div>
-      </div>
-      <div class="tips">
-        <div>Tip: Press <strong>Enter</strong> to send. Use <strong>Image</strong> or <strong>Upload</strong>.</div>
-      </div>
-    </aside>
 
-    <main class="panel">
-      <div id="chat" class="chat" role="log" aria-live="polite"></div>
+<div class="app">
+  <header>AI-CHATBOT</header>
 
-      <form id="composer" class="composer" onsubmit="return false;">
-        <input id="prompt" placeholder="Ask AI-CHATBOT..." autocomplete="off" />
-        <button id="sendBtn" class="btn send" type="button">Send</button>
-        <button id="imgBtn" class="btn img" type="button">Image</button>
-        <input id="fileInput" type="file" style="display:none" />
-        <button id="uploadBtn" class="btn" type="button">Upload</button>
-      </form>
-    </main>
+  <div id="chat" class="chat"></div>
 
-    <aside class="visual">
-      <div class="vis">Realtime</div>
-    </aside>
+  <div class="input-bar">
+    <input id="input" placeholder="Ask AI-CHATBOT…" autocomplete="off">
+    <button onclick="sendChat()">Send</button>
+    <button id="stopBtn" onclick="stopResponse()">Stop</button>
   </div>
+</div>
 
 <script>
-/* Frontend behavior: typing, formatting, enter-to-send, file upload */
-const chatEl = document.getElementById('chat');
-const promptEl = document.getElementById('prompt');
-const sendBtn = document.getElementById('sendBtn');
-const imgBtn = document.getElementById('imgBtn');
-const uploadBtn = document.getElementById('uploadBtn');
-const fileInput = document.getElementById('fileInput');
+let session = localStorage.getItem("session") || crypto.randomUUID();
+localStorage.setItem("session", session);
 
-const sessionId = localStorage.getItem('sessionId') || Math.random().toString(36).slice(2);
-localStorage.setItem('sessionId', sessionId);
+let controller = null;
 
-function scrollBottom(){ chatEl.scrollTop = chatEl.scrollHeight; }
+const chatBox = document.getElementById("chat");
+const input = document.getElementById("input");
 
-function addRow(user=false){
-  const r = document.createElement('div');
-  r.className = 'row' + (user ? ' user' : '');
-  return r;
+function addBubble(text, cls) {
+  const div = document.createElement("div");
+  div.className = "bubble " + cls;
+  div.innerHTML = formatText(text);
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  return div;
 }
 
-function addBubble(text, kind='ai', isHtml=false){
-  const row = addRow(kind === 'user');
-  const b = document.createElement('div');
-  b.className = 'bubble ' + (kind === 'user' ? 'user' : 'ai');
-  if(isHtml) b.innerHTML = text; else b.textContent = text;
-  row.appendChild(b);
-  chatEl.appendChild(row);
-  scrollBottom();
-  return b;
+function formatText(text) {
+  return text
+    .replace(/\n\n/g,"<br><br>")
+    .replace(/\n/g,"<br>")
+    .replace(/^\d+\.\s(.+)/gm,"• $1<br>")
+    .replace(/^\-\s(.+)/gm,"• $1<br>");
 }
 
-function createTypingBubble(){
-  const row = addRow(false);
-  const b = document.createElement('div');
-  b.className = 'bubble ai';
-  const cursor = document.createElement('span');
-  cursor.className = 'cursor';
-  b.appendChild(cursor);
-  row.appendChild(b);
-  chatEl.appendChild(row);
-  scrollBottom();
-  return b;
+function showThinking() {
+  return addBubble("AI-CHATBOT is thinking…", "assistant thinking");
 }
 
-function typeEffect(el, text, speed=18){
-  el.textContent = '';
-  const cursor = document.createElement('span'); cursor.className='cursor';
-  el.appendChild(cursor);
+function stopResponse() {
+  if (controller) {
+    controller.abort();
+    controller = null;
+    addBubble("⏹ Response stopped", "assistant");
+  }
+}
+
+async function sendChat() {
+  const text = input.value.trim();
+  if (!text) return;
+
+  addBubble(text, "user");
+  input.value = "";
+
+  const thinking = showThinking();
+  controller = new AbortController();
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      signal: controller.signal,
+      body: JSON.stringify({ prompt: text, session })
+    });
+
+    const data = await res.json();
+    thinking.remove();
+
+    if (data.reply) {
+      typeEffect(addBubble("", "assistant"), data.reply);
+    } else {
+      addBubble("Error connecting to AI-CHATBOT", "assistant");
+    }
+
+  } catch (e) {
+    thinking.remove();
+    if (e.name === "AbortError") {
+      addBubble("⏹ Response stopped", "assistant");
+    } else {
+      addBubble("Network error", "assistant");
+    }
+  } finally {
+    controller = null;
+  }
+}
+
+function typeEffect(el, text) {
   let i = 0;
-  const iv = setInterval(()=>{
-    if(i >= text.length){ cursor.remove(); clearInterval(iv); scrollBottom(); return; }
-    cursor.insertAdjacentText('beforebegin', text.charAt(i)); i++; scrollBottom();
+  const speed = 12;
+  const formatted = formatText(text);
+
+  const interval = setInterval(() => {
+    el.innerHTML = formatted.slice(0, i);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    i++;
+    if (i > formatted.length) clearInterval(interval);
   }, speed);
 }
 
-/* Format lists and line breaks into HTML safely */
-function renderFormatted(el, text){
-  if(!text) { el.textContent = ''; return; }
-  // escape basic HTML to avoid accidental tags
-  const escaped = text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-  // convert numbered lists and dashes into bullets and preserve paragraphs
-  let html = escaped
-    .replace(/\r\n/g, '\n')
-    .replace(/\n{2,}/g, '</p><p>')
-    .replace(/\n/g, '<br>')
-    .replace(/^\s*\d+\.\s(.+)/gm, '• $1')
-    .replace(/^\s*-\s(.+)/gm, '• $1');
-
-  // wrap in paragraph tags if needed
-  if(!html.startsWith('<p>')) html = '<p>' + html + '</p>';
-  el.innerHTML = html;
-}
-
-/* Send chat */
-async function sendChat(){
-  const prompt = promptEl.value.trim();
-  if(!prompt) return;
-  addBubble(prompt, 'user');
-  promptEl.value = '';
-  const status = addBubble('Thinking...', 'ai');
-  status.classList.add('sys');
-
-  try{
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ prompt, session: sessionId })
-    });
-    if(!res.ok){
-      const txt = await res.text();
-      throw new Error(txt.slice(0,300));
-    }
-    const j = await res.json();
-    status.remove();
-    const b = createTypingBubble();
-    // render formatted reply with typing effect (we show plain then replace with formatted)
-    const reply = j.reply || 'No reply';
-    // If reply contains line breaks or list, render formatted after typing
-    typeEffect(b, reply, 16);
-  }catch(err){
-    if(status) status.remove();
-    addBubble('Error: ' + (err.message || err), 'ai');
-  }
-}
-
-/* Image generation */
-async function sendImage(){
-  const prompt = promptEl.value.trim();
-  if(!prompt) return;
-  addBubble(prompt, 'user');
-  promptEl.value = '';
-  const status = addBubble('Generating image...', 'ai'); status.classList.add('sys');
-
-  try{
-    const res = await fetch('/api/generate', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ prompt })
-    });
-    if(!res.ok){
-      const t = await res.text(); throw new Error(t.slice(0,300));
-    }
-    const j = await res.json();
-    status.remove();
-    const row = addRow(false);
-    const b = document.createElement('div'); b.className='bubble ai';
-    const img = document.createElement('img');
-    img.src = 'data:image/png;base64,' + j.image;
-    img.alt = prompt;
-    img.style.maxWidth = '420px'; img.style.borderRadius='12px';
-    b.appendChild(img); row.appendChild(b); chatEl.appendChild(row); scrollBottom();
-  }catch(err){
-    if(status) status.remove();
-    addBubble('Error: ' + (err.message || err), 'ai');
-  }
-}
-
-/* File upload (Upload -> /api/upload) */
-uploadBtn.addEventListener('click', ()=> fileInput.click());
-fileInput.addEventListener('change', async (e)=>{
-  const f = e.target.files[0];
-  if(!f) return;
-  addBubble('Uploaded: ' + f.name, 'user');
-  const fd = new FormData(); fd.append('file', f);
-  const status = addBubble('Scanning file...', 'ai'); status.classList.add('sys');
-  try{
-    const res = await fetch('/api/upload', { method: 'POST', body: fd });
-    if(!res.ok){ const t = await res.text(); throw new Error(t.slice(0,300)); }
-    const j = await res.json();
-    status.remove();
-    addBubble(j.summary || j.error || 'No summary available.', 'ai');
-  }catch(err){
-    if(status) status.remove();
-    addBubble('Error: ' + (err.message || err), 'ai');
-  }
-});
-
-/* Enter to send - no shift required to add newline */
-promptEl.addEventListener('keydown', (e)=>{
-  if(e.key === 'Enter' && !e.shiftKey){
+// ENTER KEY SEND
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
     e.preventDefault();
     sendChat();
   }
 });
-
-/* Buttons */
-sendBtn.addEventListener('click', sendChat);
-imgBtn.addEventListener('click', sendImage);
-
-/* initial */
-(function init(){
-  const b = createTypingBubble();
-  typeEffect(b, 'Welcome — I am AI-CHATBOT. Ask me anything.', 16);
-})();
 </script>
+
 </body>
 </html>
