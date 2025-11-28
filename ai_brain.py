@@ -17,7 +17,11 @@ def ask_chat(prompt):
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt}
+            def build_image_prompt(prompt: str):
+    return f"High quality, detailed, ultra realistic: {prompt}"
+
         ]
     )
 
     return completion.choices[0].message.content
+
