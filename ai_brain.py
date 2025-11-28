@@ -1,27 +1,40 @@
-import os
 from groq import Groq
+import os
 
-MODEL = "llama-3.1-8b-instant"
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-SYSTEM_PROMPT = """
-Your name is AI-CHATBOT.
-You were created by the user.
-Never mention OpenAI, Meta, Groq, or other companies.
-"""
+MODEL = "llama-3.1-8b-instant"
 
 
-def ask_chat(prompt):
-    completion = client.chat.completions.create(
+def ask_chat(prompt, history=None):
+    if history is None:
+        history = []
+
+    messages = []
+
+    # System identity
+    messages.append({
+        "role": "system",
+        "content": "You are AI-CHATBOT, a helpful, professional AI assistant."
+    })
+
+    # Conversation memory
+    for user, bot in history:
+        messages.append({"role": "user", "content": user})
+        messages.append({"role": "assistant", "content": bot})
+
+    # New message
+    messages.append({"role": "user", "content": prompt})
+
+    response = client.chat.completions.create(
         model=MODEL,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt}
-            def build_image_prompt(prompt: str):
-    return f"High quality, detailed, ultra realistic: {prompt}"
-
-        ]
+        messages=messages,
+        temperature=0.7,
+        max_tokens=600
     )
 
-    return completion.choices[0].message.content
+    return response.choices[0].message.content
 
+
+def build_image_prompt(prompt: str):
+    return f"Ultra-detailed, cinematic, high resolution: {prompt}"
