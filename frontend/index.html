@@ -7,27 +7,34 @@
 </head>
 <body>
 
-<div class="container">
-  <div class="chatbox">
+<div class="app">
 
-    <div class="header">AI-CHATBOT</div>
+  <header>AI-CHATBOT</header>
 
-    <div id="chat"></div>
+  <div id="chat"></div>
 
-    <div class="input-area">
-      <input id="input" placeholder="Type a message..." autocomplete="off">
-      <button id="send">Send</button>
-      <button id="stop">Stop</button>
-    </div>
+  <div class="input-bar">
+
+    <label class="file-btn">
+      ＋
+      <input type="file" id="fileInput" hidden>
+    </label>
+
+    <input id="textInput" placeholder="Type a message..." autocomplete="off"/>
+
+    <button id="sendBtn">➤</button>
 
   </div>
+
 </div>
 
 <script>
 let controller;
 
-function addMessage(role, text) {
-  const chat = document.getElementById("chat");
+const input = document.getElementById("textInput");
+const chat = document.getElementById("chat");
+
+function addMessage(role, text){
   const div = document.createElement("div");
   div.className = "msg " + role;
   div.textContent = text;
@@ -35,35 +42,36 @@ function addMessage(role, text) {
   chat.scrollTop = chat.scrollHeight;
 }
 
-async function sendMessage() {
-  const input = document.getElementById("input");
-  if (!input.value.trim()) return;
-
-  addMessage("user", input.value);
+async function sendMessage(){
+  const text = input.value.trim();
+  if(!text) return;
+  
+  addMessage("user", text);
+  input.value = "";
 
   controller = new AbortController();
 
-  const response = await fetch("/api/chat", {
+  const res = await fetch("/api/chat", {
     method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ prompt: input.value }),
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({prompt:text}),
     signal: controller.signal
   });
 
-  const data = await response.json();
-
-  // ✅ FIXED undefined bug
-  addMessage("ai", data.reply || "No response from AI");
-
-  input.value = "";
+  const data = await res.json();
+  addMessage("ai", data.reply || "No response.");
 }
 
-document.getElementById("send").onclick = sendMessage;
-document.getElementById("stop").onclick = () => controller.abort();
+document.getElementById("sendBtn").onclick = sendMessage;
 
-document.getElementById("input").addEventListener("keydown", e=>{
-  if(e.key==="Enter") sendMessage();
+input.addEventListener("keydown", e => {
+  if(e.key === "Enter") sendMessage();
 });
+
+document.getElementById("fileInput").onchange = () => {
+  const file = fileInput.files[0];
+  if(file) addMessage("user", "Uploaded file: " + file.name);
+};
 </script>
 
 </body>
