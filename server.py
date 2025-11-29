@@ -1,14 +1,10 @@
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
 from ai_brain import ask_chat
 import os
 import asyncio
 
 app = FastAPI()
-
-# Serve UI
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 async def home():
@@ -29,3 +25,4 @@ async def chat(prompt: str = Form(...)):
 async def upload(file: UploadFile = File(...)):
     content = await file.read()
     return {"filename": file.filename, "size": len(content)}
+
