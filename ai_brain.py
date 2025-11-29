@@ -1,40 +1,34 @@
-from groq import Groq
 import os
+import requests
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 MODEL = "llama-3.1-8b-instant"
 
+async def ask_chat(prompt: str):
+    if not GROQ_API_KEY:
+        return "Error: No API key set."
 
-def ask_chat(prompt, history=None):
-    if history is None:
-        history = []
+    url = "https://api.groq.com/openai/v1/chat/completions"
 
-    messages = []
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
+    }
 
-    # System identity
-    messages.append({
-        "role": "system",
-        "content": "You are AI-CHATBOT, a helpful, professional AI assistant."
-    })
+    data = {
+        "model": MODEL,
+        "messages": [
+            {"role": "system", "content": "You are AI-CHATBOT."},
+            {"role": "user", "content": prompt}
+        ]
+    }
 
-    # Conversation memory
-    for user, bot in history:
-        messages.append({"role": "user", "content": user})
-        messages.append({"role": "assistant", "content": bot})
+    res = requests.post(url, headers=headers, json=data)
 
-    # New message
-    messages.append({"role": "user", "content": prompt})
+    r = res.json()
 
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=messages,
-        temperature=0.7,
-        max_tokens=600
-    )
+    if "choices" not in r:
+        return "API Error. Check logs."
 
-    return response.choices[0].message.content
-
-
-def build_image_prompt(prompt: str):
-    return f"Ultra-detailed, cinematic, high resolution: {prompt}"
+    return r["choices"][0]["message"]["content"]
