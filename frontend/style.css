@@ -98,3 +98,18 @@ button:hover {
   from {opacity:0; transform:translateY(5px);}
   to {opacity:1;}
 }
+/* ALIGNMENT FIX */
+.user {
+  margin-left: auto;
+  background: linear-gradient(135deg, #1e4fff, #3a7bff);
+  color: white;
+  box-shadow: 0 0 10px rgba(0, 90, 255, 0.4);
+}
+
+.ai {
+  margin-right: auto;
+  background: linear-gradient(135deg, #111, #1a1a1a);
+  color: #eaeaea;
+  box-shadow: 0 0 8px rgba(0,0,0,.7);
+}
+
