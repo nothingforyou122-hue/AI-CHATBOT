@@ -1,44 +1,31 @@
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-import requests
+from fastapi import FastAPI, UploadFile, File, Form
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from ai_brain import ask_chat
 import os
+import asyncio
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Serve UI
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-API_KEY = os.environ.get("GROQ_API_KEY")
-MODEL = "llama-3.1-8b-instant"
+@app.get("/", response_class=HTMLResponse)
+async def home():
+    with open("templates/index.html", "r", encoding="utf-8") as f:
+        return f.read()
 
+# Chat API
 @app.post("/api/chat")
-async def chat(req: Request):
-    body = await req.json()
-    prompt = body.get("prompt")
-
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json"
-    }
-
-    data = {
-        "model": MODEL,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.7
-    }
-
-    r = requests.post("https://api.groq.com/openai/v1/chat/completions",
-                      headers=headers, json=data)
-
-    res = r.json()
-
+async def chat(prompt: str = Form(...)):
     try:
-        reply = res["choices"][0]["message"]["content"]
-    except:
-        reply = "AI backend error."
+        reply = await ask_chat(prompt)
+        return {"reply": reply}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
-    return {"reply": reply}
+# File Upload API (kept but does nothing visual)
+@app.post("/api/upload")
+async def upload(file: UploadFile = File(...)):
+    content = await file.read()
+    return {"filename": file.filename, "size": len(content)}
