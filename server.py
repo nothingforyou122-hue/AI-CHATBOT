@@ -1,15 +1,17 @@
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, JSONResponse
-from ai_brain import ask_chat
 import os
-import asyncio
+
+from ai_brain import ask_chat
 
 app = FastAPI()
 
+# Serve Frontend UI
 @app.get("/", response_class=HTMLResponse)
 async def home():
-    with open("templates/index.html", "r", encoding="utf-8") as f:
+    with open("frontend/index.html", "r", encoding="utf-8") as f:
         return f.read()
+
 
 # Chat API
 @app.post("/api/chat")
@@ -20,9 +22,9 @@ async def chat(prompt: str = Form(...)):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
-# File Upload API (kept but does nothing visual)
+
+# File Upload API
 @app.post("/api/upload")
 async def upload(file: UploadFile = File(...)):
     content = await file.read()
     return {"filename": file.filename, "size": len(content)}
-
